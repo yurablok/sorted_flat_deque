@@ -7,4 +7,9 @@
     <ClInclude Include="circular_buffer.hpp" />
     <ClInclude Include="sorted_flat_deque.hpp" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="sorted_flat_deque.pro" />
+    <None Include="LICENSE" />
+    <None Include="README.md" />
+  </ItemGroup>
 </Project>

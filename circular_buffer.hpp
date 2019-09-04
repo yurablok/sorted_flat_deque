@@ -1,6 +1,7 @@
 #pragma once
 #include <vector>
 
+//NOTE: Destructors of stored items may be called several times.
 template <typename T>
 class circular_buffer {
 public:
@@ -11,6 +12,8 @@ public:
 
     circular_buffer() {
         init(0);
+        //clear();
+        //set_max_size(0);
     }
     circular_buffer(const circular_buffer<T>& other) {
         *this = other;
@@ -20,8 +23,10 @@ public:
     }
     circular_buffer(const position_t max_size) {
         init(max_size);
+        //clear();
+        //set_max_size(max_size);
     }
-    //TODO: init -> resize
+    //TODO: init -> set_max_size
     void init(const position_t max_size) {
         m_buffer.clear();
         m_frontPos = 0;
@@ -63,20 +68,6 @@ public:
     //        m_buffer.resize(new_max_size);
     //    }
     //}
-    void push_back(const T& value) {
-        if (m_buffer.empty()) {
-            return;
-        }
-        while (m_size >= m_buffer.size()) {
-            pop_front();
-        }
-        m_buffer.at(m_backPos) = value;
-        ++m_backPos;
-        if (m_backPos >= m_buffer.size()) {
-            m_backPos = 0;
-        }
-        ++m_size;
-    }
     void push_back(T&& value) {
         if (m_buffer.empty()) {
             return;
@@ -91,27 +82,22 @@ public:
         }
         ++m_size;
     }
-    //void push_back() {
-    //    T value;
-    //    push_back(std::move(value));
-    //}
-
-    void push_front(const T& value) {
-        if (m_buffer.empty()) {
-            return;
-        }
-        while (m_size >= m_buffer.size()) {
-            pop_back();
-        }
-        if (m_frontPos == 0) {
-            m_frontPos = m_buffer.size() - 1;
-        }
-        else {
-            --m_frontPos;
-        }
-        m_buffer.at(m_frontPos) = value;
-        ++m_size;
+    void push_back(const T& value) {
+        push_back(std::move(value));
+        //if (m_buffer.empty()) {
+        //    return;
+        //}
+        //while (m_size >= m_buffer.size()) {
+        //    pop_front();
+        //}
+        //m_buffer.at(m_backPos) = value;
+        //++m_backPos;
+        //if (m_backPos >= m_buffer.size()) {
+        //    m_backPos = 0;
+        //}
+        //++m_size;
     }
+
     void push_front(T&& value) {
         if (m_buffer.empty()) {
             return;
@@ -120,7 +106,7 @@ public:
             pop_back();
         }
         if (m_frontPos == 0) {
-            m_frontPos = m_buffer.size() - 1;
+            m_frontPos = static_cast<position_t>(m_buffer.size() - 1);
         }
         else {
             --m_frontPos;
@@ -128,10 +114,23 @@ public:
         m_buffer.at(m_frontPos) = value;
         ++m_size;
     }
-    //void push_front() {
-    //    T value;
-    //    push_front(std::move(value));
-    //}
+    void push_front(const T& value) {
+        push_front(std::move(value));
+        //if (m_buffer.empty()) {
+        //    return;
+        //}
+        //while (m_size >= m_buffer.size()) {
+        //    pop_back();
+        //}
+        //if (m_frontPos == 0) {
+        //    m_frontPos = m_buffer.size() - 1;
+        //}
+        //else {
+        //    --m_frontPos;
+        //}
+        //m_buffer.at(m_frontPos) = value;
+        //++m_size;
+    }
 
     T&& pop_back() {
         if (m_size == 0) {
@@ -140,7 +139,7 @@ public:
         }
         auto ret = std::move(m_buffer.at(back_idx()));
         if (m_backPos == 0) {
-            m_backPos = m_buffer.size() - 1;
+            m_backPos = static_cast<position_t>(m_buffer.size() - 1);
         }
         else {
             --m_backPos;
@@ -202,8 +201,9 @@ public:
     }
     position_t back_idx() const {
         position_t realIndex = m_frontPos + m_size - 1;
-        if (realIndex >= m_buffer.size()) {
-            realIndex -= m_buffer.size();
+        const position_t bufferSize = static_cast<position_t>(m_buffer.size());
+        if (realIndex >= bufferSize) {
+            realIndex -= bufferSize;
         }
         return realIndex;
     }
@@ -233,6 +233,7 @@ public:
         m_buffer.shrink_to_fit();
     }
 
+    // RandomAccessIterator
     class iterator {
     public:
         iterator() {}
@@ -308,6 +309,7 @@ public:
         circular_buffer<T>* m_ptr = nullptr;
         position_t m_pos = 0;
     };
+    // RandomAccessIterator
     class const_iterator {
     public:
         const_iterator() {} // construct with null vector pointer

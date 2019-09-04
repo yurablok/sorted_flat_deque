@@ -157,6 +157,11 @@
     <ClInclude Include="circular_buffer.hpp" />
     <ClInclude Include="sorted_flat_deque.hpp" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="LICENSE" />
+    <None Include="README.md" />
+    <None Include="sorted_flat_deque.pro" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
