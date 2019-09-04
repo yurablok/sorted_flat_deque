@@ -1,3 +1,5 @@
+#pragma once
+
 // push - O(n/2)
 // pop - O(1)
 // min - O(1)
@@ -5,28 +7,24 @@
 // max - O(1)
 // average - O(1)
 template <typename T>
-class sorted_flat_deque
-{
+class sorted_flat_deque {
     struct node {
         T value;
         uint32_t prev;
         uint32_t next;
     };
 public:
-    void init(const uint32_t max_size)
-    {
+    void init(const uint32_t max_size) {
         m_size = 0;
         m_min = UINT32_MAX;
         m_median = UINT32_MAX;
         m_max = UINT32_MAX;
         m_nodes.init(max_size);
     }
-    void set_max_size(const uint32_t max_size)
-    {
+    void set_max_size(const uint32_t max_size) {
         m_nodes;
     }
-    void push(const T& value)
-    {
+    void push(const T& value) {
         if (size_max() == 0) {
             return;
         }
@@ -34,7 +32,7 @@ public:
         while (size() >= size_max()) {
             pop();
         }
-        m_nodes.push();
+        m_nodes.push_back(node());
 
         auto& back = m_nodes.back();
         const auto back_idx = m_nodes.back_idx();
@@ -124,8 +122,7 @@ public:
             m_medianPos += 1;
         }
     }
-    void pop()
-    {
+    void pop() {
         if (m_nodes.empty()) {
             return;
         }
@@ -166,10 +163,9 @@ public:
                 m_medianPos += 1;
             }
         }
-        m_nodes.pop();
+        m_nodes.pop_front();
     }
-    T& min() const
-    {
+    T& min() const {
         if (m_min == UINT32_MAX) {
             throw std::logic_error("m_min == UINT32_MAX");
         }
@@ -177,8 +173,7 @@ public:
             return m_nodes.at_idx(m_min).value;
         }
     }
-    T& median() const
-    {
+    T& median() const {
         if (m_median == UINT32_MAX) {
             throw std::logic_error("m_middle == UINT32_MAX");
         }
@@ -186,8 +181,7 @@ public:
             return m_nodes.at_idx(m_median).value;
         }
     }
-    T& max() const
-    {
+    T& max() const {
         if (m_max == UINT32_MAX) {
             throw std::logic_error("m_max == UINT32_MAX");
         }
@@ -195,28 +189,22 @@ public:
             return m_nodes.at_idx(m_max).value;
         }
     }
-    T average() const
-    {
+    T average() const {
         return m_sum / static_cast<T>(m_nodes.size());
     }
-    uint32_t size() const
-    {
+    uint32_t size() const {
         return m_size;
     }
-    bool empty() const
-    {
+    bool empty() const {
         return m_size == 0;
     }
-    uint32_t size_max() const
-    {
-        return m_nodes.maxSize();
+    uint32_t max_size() const {
+        return m_nodes.max_size();
     }
-    void clear()
-    {
+    void clear() {
         //TODO: void clear()
     }
-    //void debug_print() const
-    //{
+    //void debug_print() const {
     //    if (m_min == UINT32_MAX) {
     //        return;
     //    }
@@ -254,142 +242,3 @@ private:
     uint32_t m_max = UINT32_MAX;
     T m_sum = 0;
 };
-//#include <random>
-//#include <chrono>
-//#include <array>
-//class sorted_flat_deque_test { public: sorted_flat_deque_test() {
-//    sorted_flat_deque<int32_t> sorted;
-//    assert(sorted.size() == 0);
-//    sorted.push(0);
-//    assert(sorted.size() == 0);
-//    sorted.init(1);
-//    sorted.push(0);
-//    assert(sorted.size() == 1);
-//    sorted.push(0);
-//    assert(sorted.size() == 1);
-//    sorted.init(2);
-//    assert(sorted.size() == 0);
-//    sorted.push(2);
-//    sorted.push(1);
-//    assert(sorted.size() == 2);
-//    sorted.pop();
-//    sorted.pop();
-//    assert(sorted.size() == 0);
-//    sorted.pop();
-//    assert(sorted.size() == 0);
-//
-//    sorted.init(7);
-//    sorted.push(75); // 75M
-//    sorted.debug_print();
-//    sorted.push(37); // 37M 75
-//    sorted.debug_print();
-//    sorted.push(83); // 37 75M 83
-//    sorted.debug_print();
-//    sorted.push(92); // 37 75M 83 92
-//    sorted.debug_print();
-//    sorted.push(59); // 37 59 75M 83 92
-//    sorted.debug_print();
-//    sorted.push(96); // 37 59 75M 83 92 96
-//    sorted.debug_print();
-//    sorted.push(57); // 37 57 59 75M 83 92 96
-//    sorted.debug_print();
-//    sorted.push(80); // 37 57 59 80M 83 92 96 -75
-//    sorted.debug_print();
-//    sorted.push(65); // 57 59 65 80M 83 92 96 -37
-//    sorted.debug_print();
-//    sorted.push(55); // 55 57 59 65M 80 92 96 -83
-//    sorted.debug_print();
-//    sorted.push(74); // 55 57 59 65M 74 80 96 -92
-//    sorted.debug_print();
-//    sorted.push(67); // 55 57 65 67M 74 80 96 -59
-//    sorted.debug_print();
-//    sorted.push(15); // 15 55 57 65M 67 74 80 -96
-//    sorted.debug_print();
-//    sorted.push(76); // 15 55 65 67M 74 76 80 -57
-//    sorted.debug_print();
-//    sorted.push(59); // 15 55 59 65M 67 74 76 -80
-//    sorted.debug_print();
-//    sorted.push(30); // 15 30 55 59M 67 74 76 -65
-//    sorted.debug_print();
-//    assert(sorted.min() == 15);
-//    assert(sorted.median() == 59);
-//    assert(sorted.max() == 76);
-//
-//    std::mt19937 rng;
-//    std::chrono::high_resolution_clock::time_point begin, end;
-//    constexpr uint32_t maxSize = 313;
-//    //constexpr uint32_t reps = 1350;
-//    constexpr uint32_t reps = 1770;
-//    //constexpr uint32_t reps = 1000000;
-//    system("pause");
-//    {
-//        int32_t chsum = 0;
-//        rng.seed();
-//
-//        std::array<int32_t, maxSize> temp;
-//        circular_buffer<int32_t> testA;
-//        testA.init(maxSize);
-//
-//        begin = std::chrono::high_resolution_clock::now();
-//
-//        for (uint32_t i = 0; i < reps; ++i) {
-//            //if (i == 1336) {
-//            //    __nop();
-//            //}
-//            int32_t newValue = rng() % 2000 - 1000;
-//            testA.push(newValue);
-//            for (uint32_t n = 0; n < testA.size(); ++n) {
-//                temp[n] = testA[n];
-//            }
-//            std::sort(temp.begin(), temp.begin() + testA.size());
-//            chsum += temp[(testA.size() - 1) >> 1];
-//
-//            //if (1766 < i) {
-//                std::cout << i << ": " << temp[(testA.size() - 1) >> 1] << std::endl;
-//            //}
-//        }
-//
-//        end = std::chrono::high_resolution_clock::now();
-//
-//        std::cout << "TestA: time=" << std::chrono::duration_cast<std::chrono::microseconds>(
-//            end - begin).count() << " mcs, chsum=" << chsum << std::endl;
-//    }
-//    system("pause");
-//    {
-//        int32_t chsum = 0;
-//        rng.seed();
-//
-//        sorted_flat_deque<int32_t> testB;
-//        testB.init(maxSize);
-//
-//        begin = std::chrono::high_resolution_clock::now();
-//
-//        for (uint32_t i = 0; i < reps; ++i) {
-//            if (i == 1766) {
-//                __nop();
-//                //testB.debug_print();
-//                //testB.debug_indexes();
-//            }
-//            int32_t newValue = rng() % 2000 - 1000;
-//            testB.push(newValue);
-//            chsum += testB.median();
-//
-//            //if (1766 < i) {
-//                std::cout << i << ": " << testB.median() << std::endl;
-//            //}
-//            if (i == 1766) {
-//                //std::cout << "newValue=" << newValue << std::endl;
-//                //testB.debug_print();
-//                //testB.debug_indexes();
-//            }
-//        }
-//
-//        end = std::chrono::high_resolution_clock::now();
-//
-//        std::cout << "TestA: time=" << std::chrono::duration_cast<std::chrono::microseconds>(
-//            end - begin).count() << " mcs, chsum=" << chsum << std::endl;
-//    }
-//    system("pause");
-//    std::exit(0);
-//}};
-//static sorted_flat_deque_test my_sorted_flat_deque_test;
