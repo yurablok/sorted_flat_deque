@@ -43,16 +43,17 @@ struct data_t {
 };
 
 void test_circular_buffer() {
-    {
+    { // basic
         circular_buffer<int32_t> buf;
         assert(buf.size() == 0);
         assert(buf.max_size() == 0);
-        buf.init(0);
+        buf.set_max_size(0);
         buf.push_back(11);
         assert(buf.size() == 0);
         assert(buf.max_size() == 0);
 
-        buf.init(1);
+        buf.clear();
+        buf.set_max_size(1);
         assert(buf.size() == 0);
         assert(buf.max_size() == 1);
         buf.push_back(11);
@@ -66,7 +67,8 @@ void test_circular_buffer() {
         assert(buf.back() == 22);
         assert(buf.at(0) == 22);
 
-        buf.init(3);
+        buf.clear();
+        buf.set_max_size(3);
         assert(buf.size() == 0);
         assert(buf.max_size() == 3);
         assert(buf.begin() == buf.end());
@@ -95,10 +97,11 @@ void test_circular_buffer() {
         buf.push_front(55); // 55 22 33
         assert(buf.at(0) == 55);
         assert(*(buf.end() - 1) == 33);
-    }
-    {
+    } // basic
+
+    { // complex type
         circular_buffer<data_t> buf;
-        buf.init(3); // c-tor x3
+        buf.set_max_size(3); // c-tor x3
         buf.push_back(data_t(11));
         buf[0] = data_t(22); // assign move
         data_t data; // c-tor
@@ -106,7 +109,28 @@ void test_circular_buffer() {
         data.value = 33;
         buf[0] = data; // assign copy
         buf.pop_back(); // d-tor
-    }
+    } // complex type
+
+    { // set_max_size
+        circular_buffer<int32_t> buf;
+        buf.set_max_size(3);
+        buf.push_back(1); // 1 _ _
+        buf.push_back(2); // 1 2 _
+        buf.push_back(3); // 1 2 3
+        buf.pop_front(); // _ 2 3
+        buf.set_max_size(5); // _ 2 3 _ _
+        assert(buf[0] == 2);
+        assert(buf[1] == 3);
+        buf.set_max_size(4); // 2 3 _ _
+        assert(buf[0] == 2);
+        assert(buf[1] == 3);
+        buf.push_back(4); // 2 3 4 _
+        buf.push_back(5); // 2 3 4 5
+        buf.set_max_size(3); // 3 4 5
+        assert(buf[0] == 3);
+        assert(buf[1] == 4);
+        assert(buf[2] == 5);
+    } // set_max_size
 }
 
 template <typename value_t>
@@ -129,6 +153,7 @@ void test_sorted_flat_deque() {
         assert(sorted.size() == 1);
         sorted.push_back(0);
         assert(sorted.size() == 1);
+
         sorted.init(2);
         assert(sorted.size() == 0);
         sorted.push_back(2);

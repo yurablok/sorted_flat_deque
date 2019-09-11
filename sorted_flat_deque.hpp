@@ -60,10 +60,7 @@ public:
     sorted_flat_deque(sorted_flat_deque<item_t>&& other) {
         *this = std::move(other);
     }
-    sorted_flat_deque(const position_t max_size) {
-        init(max_size);
-    }
-    sorted_flat_deque(const position_t max_size, const comparator_t comparator) {
+    sorted_flat_deque(const position_t max_size, const comparator_t comparator = nullptr) {
         init(max_size, comparator);
     }
 
@@ -73,14 +70,20 @@ public:
     typename std::enable_if<
         std::is_same<ItemT, ValueT>::value == true,
         void>::type
-    init(const position_t max_size) {
-        m_comparator = [](const value_t& left, const value_t& right) { return left < right; };
+    init(const position_t max_size, const comparator_t comparator = nullptr) {
+        if (comparator) {
+            m_comparator = comparator;
+        }
+        else {
+            m_comparator = [](const value_t& left, const value_t& right) { return left < right; };
+        }
         m_size = 0;
         m_minIdx = position_max;
         m_medianIdx = position_max;
         m_medianPos = position_max;
         m_maxIdx = position_max;
-        m_nodes.init(max_size);
+        m_nodes.clear();
+        m_nodes.set_max_size(max_size);
     }
     template <typename ItemT = item_t, typename ValueT = value_t>
     typename std::enable_if<
@@ -93,7 +96,8 @@ public:
         m_medianIdx = position_max;
         m_medianPos = position_max;
         m_maxIdx = position_max;
-        m_nodes.init(max_size);
+        m_nodes.clear();
+        m_nodes.set_max_size(max_size);
     }
 
     sorted_flat_deque<item_t>& operator=(const sorted_flat_deque<item_t>& other) {

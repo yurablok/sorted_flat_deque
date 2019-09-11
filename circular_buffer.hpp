@@ -11,9 +11,8 @@ public:
     using const_pointer = const value_type*;
 
     circular_buffer() {
-        init(0);
-        //clear();
-        //set_max_size(0);
+        clear();
+        set_max_size(0);
     }
     circular_buffer(const circular_buffer<T>& other) {
         *this = other;
@@ -22,52 +21,71 @@ public:
         *this = std::move(other);
     }
     circular_buffer(const position_t max_size) {
-        init(max_size);
-        //clear();
-        //set_max_size(max_size);
+        clear();
+        set_max_size(max_size);
     }
-    //TODO: init -> set_max_size
-    void init(const position_t max_size) {
-        m_buffer.clear();
-        m_frontPos = 0;
-        m_backPos = 0;
-        m_size = 0;
-        m_buffer.resize(max_size);
-        //set_max_size(max_size);
-    }
+
     circular_buffer<T>& operator=(const circular_buffer<T>& other) {
         m_buffer = other.m_buffer;
-        m_frontPos = other.m_frontPos;
-        m_backPos = other.m_backPos;
+        m_frontOffset = other.m_frontOffset;
         m_size = other.m_size;
     }
     circular_buffer<T>& operator=(circular_buffer<T>&& other) {
         m_buffer = std::move(other.m_buffer);
-        m_frontPos = other.m_frontPos; other.m_frontPos = 0;
-        m_backPos = other.m_backPos; other.m_backPos = 0;
+        m_frontOffset = other.m_frontOffset; other.m_frontOffset = 0;
         m_size = other.m_size; other.m_size = 0;
     }
 
-    //void set_max_size(const uint32_t new_max_size)
-    //{
-    //    if (m_buffer.size() == new_max_size) {
-    //        return;
-    //    }
-    //    else if (m_buffer.size() < new_max_size) {
-    //        // 001111 
-    //        // xxx    new_max_size=3
-    //        // 000111 pop_back
-    //        // 111000 <-
-    //        // 111    resize
-    //        while (m_size > new_max_size) {
-    //            pop();
-    //        }
-    //        m_buffer.resize(new_max_size);
-    //    }
-    //    else if (m_buffer.size() > new_max_size) {
-    //        m_buffer.resize(new_max_size);
-    //    }
-    //}
+    void set_max_size(
+        const uint32_t new_max_size,
+        const bool remove_from_front = true)
+    {
+        if (m_buffer.size() == new_max_size) {
+            return;
+        }
+        else if (m_buffer.size() > new_max_size) {
+            // 001111 
+            // xxx    new_max_size=3
+            // 000111 pop_front
+            // 111000 <-
+            // 111    resize
+            if (remove_from_front) {
+                while (m_size > new_max_size) {
+                    pop_front();
+                }
+            }
+            else {
+                while (m_size > new_max_size) {
+                    pop_back();
+                }
+            }
+
+            if (m_frontOffset != 0) {
+                for (uint32_t i = 0; i < m_size; ++i) {
+                    std::swap(m_buffer[i + m_frontOffset], m_buffer[i]);
+                }
+                m_frontOffset = 0;
+            }
+            m_buffer.resize(new_max_size);
+        }
+        else if (m_buffer.size() < new_max_size) {
+            m_buffer.resize(new_max_size);
+        }
+    }
+    void clear() {
+        m_buffer.clear();
+        m_frontOffset = 0;
+        m_size = 0;
+    }
+    void shrink_to_fit() {
+        m_buffer.shrink_to_fit();
+    }
+    void swap(circular_buffer<T>& other) {
+        std::swap(m_buffer, other.m_buffer);
+        std::swap(m_frontOffset, other.m_frontOffset);
+        std::swap(m_size, other.m_size);
+    }
+
     void push_back(T&& value) {
         if (m_buffer.empty()) {
             return;
@@ -75,27 +93,11 @@ public:
         while (m_size >= m_buffer.size()) {
             pop_front();
         }
-        m_buffer.at(m_backPos) = value;
-        ++m_backPos;
-        if (m_backPos >= m_buffer.size()) {
-            m_backPos = 0;
-        }
         ++m_size;
+        m_buffer.at(backOffset()) = value;
     }
     void push_back(const T& value) {
         push_back(std::move(value));
-        //if (m_buffer.empty()) {
-        //    return;
-        //}
-        //while (m_size >= m_buffer.size()) {
-        //    pop_front();
-        //}
-        //m_buffer.at(m_backPos) = value;
-        //++m_backPos;
-        //if (m_backPos >= m_buffer.size()) {
-        //    m_backPos = 0;
-        //}
-        //++m_size;
     }
 
     void push_front(T&& value) {
@@ -105,31 +107,17 @@ public:
         while (m_size >= m_buffer.size()) {
             pop_back();
         }
-        if (m_frontPos == 0) {
-            m_frontPos = static_cast<position_t>(m_buffer.size() - 1);
+        if (m_frontOffset == 0) {
+            m_frontOffset = static_cast<position_t>(m_buffer.size() - 1);
         }
         else {
-            --m_frontPos;
+            --m_frontOffset;
         }
-        m_buffer.at(m_frontPos) = value;
+        m_buffer.at(m_frontOffset) = value;
         ++m_size;
     }
     void push_front(const T& value) {
         push_front(std::move(value));
-        //if (m_buffer.empty()) {
-        //    return;
-        //}
-        //while (m_size >= m_buffer.size()) {
-        //    pop_back();
-        //}
-        //if (m_frontPos == 0) {
-        //    m_frontPos = m_buffer.size() - 1;
-        //}
-        //else {
-        //    --m_frontPos;
-        //}
-        //m_buffer.at(m_frontPos) = value;
-        //++m_size;
     }
 
     T&& pop_back() {
@@ -137,40 +125,34 @@ public:
             T t;
             return std::move(t);
         }
-        auto ret = std::move(m_buffer.at(back_idx()));
-        if (m_backPos == 0) {
-            m_backPos = static_cast<position_t>(m_buffer.size() - 1);
-        }
-        else {
-            --m_backPos;
-        }
+        const position_t posToPop = backOffset();
         --m_size;
-        return std::move(ret);
+        return std::move(m_buffer.at(posToPop));
     }
     T&& pop_front() {
         if (m_size == 0) {
             T t;
             return std::move(t);
         }
-        auto ret = std::move(m_buffer.at(front_idx()));
-        ++m_frontPos;
-        if (m_frontPos >= m_buffer.size()) {
-            m_frontPos = 0;
+        const position_t posToPop = m_frontOffset;
+        ++m_frontOffset;
+        if (m_frontOffset >= m_buffer.size()) {
+            m_frontOffset = 0;
         }
         --m_size;
-        return std::move(ret);
+        return std::move(m_buffer.at(posToPop));
     }
 
-    T& at(const position_t index) {
+    T& at(const position_t pos) {
         const position_t size = static_cast<position_t>(m_buffer.size());
-        position_t realIndex = m_frontPos + index;
+        position_t realIndex = m_frontOffset + pos;
         if (realIndex >= size) {
             realIndex -= size;
         }
         return m_buffer.at(realIndex);
     }
-    const T& at(const position_t index) const {
-        return const_cast<circular_buffer<T>*>(this)->at(index);
+    const T& at(const position_t pos) const {
+        return const_cast<circular_buffer<T>*>(this)->at(pos);
     }
     T& operator[](const position_t index) {
         return this->at(index);
@@ -185,27 +167,22 @@ public:
         return const_cast<circular_buffer<T>*>(this)->at_idx(offset);
     }
     T& front() {
-        return this->at(0);
+        return this->at_idx(m_frontOffset);
     }
     const T& front() const {
         return const_cast<circular_buffer<T>*>(this)->front();
     }
     position_t front_idx() const {
-        return m_frontPos;
+        return m_frontOffset;
     }
     T& back() {
-        return this->at(size() - 1);
+        return this->at_idx(backOffset());
     }
     const T& back() const {
         return const_cast<circular_buffer<T>*>(this)->back();
     }
     position_t back_idx() const {
-        position_t realIndex = m_frontPos + m_size - 1;
-        const position_t bufferSize = static_cast<position_t>(m_buffer.size());
-        if (realIndex >= bufferSize) {
-            realIndex -= bufferSize;
-        }
-        return realIndex;
+        return backOffset();
     }
 
     position_t max_size() const {
@@ -216,21 +193,6 @@ public:
     }
     bool empty() const {
         return size() == 0;
-    }
-    void swap(circular_buffer<T>& other) {
-        std::swap(m_buffer, other.m_buffer);
-        std::swap(m_frontPos, other.m_frontPos);
-        std::swap(m_backPos, other.m_backPos);
-        std::swap(m_size, other.m_size);
-    }
-    void clear() {
-        m_buffer.clear();
-        m_frontPos = 0;
-        m_backPos = 0;
-        m_size = 0;
-    }
-    void shrink_to_fit() {
-        m_buffer.shrink_to_fit();
     }
 
     // RandomAccessIterator
@@ -415,7 +377,19 @@ public:
 
 private:
     std::vector<T>   m_buffer;
-    position_t       m_frontPos;
-    position_t       m_backPos;
+    position_t       m_frontOffset;
+    position_t backOffset() const {
+        // size=0  front=0 back=0
+        // size=1  front=0 back=0
+        // size=2  front=0 back=1 || front=1 back=0
+        if (m_size <= 1) {
+            return m_frontOffset;
+        }
+        else {
+            return m_frontOffset + m_size <= static_cast<position_t>(m_buffer.size())
+                ? m_frontOffset + m_size - 1
+                : m_frontOffset + m_size - 1 - static_cast<position_t>(m_buffer.size());
+        }
+    }
     position_t       m_size;
 };
