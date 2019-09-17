@@ -58,8 +58,7 @@ public:
             }
             else if (m_frontOffset + m_size <= m_buffer.size()) {
                 // 000fxxxb -> 0fxxxb
-                const position_t shiftLeft =
-                    static_cast<position_t>(m_buffer.size()) - max_size;
+                const position_t shiftLeft = m_frontOffset - (max_size - m_size);
                 for (position_t i = m_frontOffset; i < m_frontOffset + m_size; ++i) {
                     std::swap(m_buffer[i - shiftLeft], m_buffer[i]);
                 }
