@@ -3,6 +3,7 @@
 #include <random>
 #include <array>
 #include <vector>
+#include <chrono>
 
 #include "circular_buffer.hpp"
 #include "sorted_flat_deque.hpp"
@@ -450,78 +451,58 @@ int main() {
     test_sorted_flat_deque();
     std::cout << "success" << std::endl;
 
-    //std::chrono::high_resolution_clock::time_point begin, end;
+    std::mt19937 rng;
+    std::chrono::high_resolution_clock::time_point begin, end;
     //constexpr uint32_t maxSize = 313;
-    ////constexpr uint32_t reps = 1350;
-    //constexpr uint32_t reps = 1770;
-    ////constexpr uint32_t reps = 1000000;
-    //system("pause");
-    //{
-    //    int32_t chsum = 0;
-    //    rng.seed();
-    //
-    //    std::array<int32_t, maxSize> temp;
-    //    circular_buffer<int32_t> testA;
-    //    testA.init(maxSize);
-    //
-    //    begin = std::chrono::high_resolution_clock::now();
-    //
-    //    for (uint32_t i = 0; i < reps; ++i) {
-    //        //if (i == 1336) {
-    //        //    __nop();
-    //        //}
-    //        int32_t newValue = rng() % 2000 - 1000;
-    //        testA.push_back(newValue);
-    //        for (uint32_t n = 0; n < testA.size(); ++n) {
-    //            temp[n] = testA[n];
-    //        }
-    //        std::sort(temp.begin(), temp.begin() + testA.size());
-    //        chsum += temp[(testA.size() - 1) >> 1];
-    //
-    //        //if (1766 < i) {
-    //            std::cout << i << ": " << temp[(testA.size() - 1) >> 1] << std::endl;
-    //        //}
-    //    }
-    //
-    //    end = std::chrono::high_resolution_clock::now();
-    //
-    //    std::cout << "TestA: time=" << std::chrono::duration_cast<std::chrono::microseconds>(
-    //        end - begin).count() << " mcs, chsum=" << chsum << std::endl;
-    //}
-    //system("pause");
-    //{
-    //    int32_t chsum = 0;
-    //    rng.seed();
-    //
-    //    sorted_flat_deque<int32_t> testB;
-    //    testB.init(maxSize);
-    //
-    //    begin = std::chrono::high_resolution_clock::now();
-    //
-    //    for (uint32_t i = 0; i < reps; ++i) {
-    //        if (i == 1766) {
-    //            __nop();
-    //            //testB.debug_print();
-    //            //testB.debug_indexes();
-    //        }
-    //        int32_t newValue = rng() % 2000 - 1000;
-    //        testB.push_back(newValue);
-    //        chsum += testB.median();
-    //
-    //        //if (1766 < i) {
-    //            std::cout << i << ": " << testB.median() << std::endl;
-    //        //}
-    //        if (i == 1766) {
-    //            //std::cout << "newValue=" << newValue << std::endl;
-    //            //testB.debug_print();
-    //            //testB.debug_indexes();
-    //        }
-    //    }
-    //
-    //    end = std::chrono::high_resolution_clock::now();
-    //
-    //    std::cout << "TestA: time=" << std::chrono::duration_cast<std::chrono::microseconds>(
-    //        end - begin).count() << " mcs, chsum=" << chsum << std::endl;
-    //}
-    //system("pause");
+    constexpr uint32_t maxSize = 1000;
+    //constexpr uint32_t reps = 1350;
+    constexpr uint32_t reps = 10000;
+    system("pause");
+    {
+        int32_t chsum = 0;
+        rng.seed();
+    
+        std::array<int32_t, maxSize> temp;
+        circular_buffer<int32_t> testA;
+        testA.set_max_size(maxSize);
+    
+        begin = std::chrono::high_resolution_clock::now();
+    
+        for (uint32_t i = 0; i < reps; ++i) {
+            int32_t newValue = rng() % 2000 - 1000;
+            testA.push_back(newValue);
+            for (uint32_t n = 0; n < testA.size(); ++n) {
+                temp[n] = testA[n];
+            }
+            std::sort(temp.begin(), temp.begin() + testA.size());
+            chsum += temp[(testA.size() - 1) >> 1];
+        }
+    
+        end = std::chrono::high_resolution_clock::now();
+    
+        std::cout << "TestA: time=" << std::chrono::duration_cast<std::chrono::microseconds>(
+            end - begin).count() << " mcs, chsum=" << chsum << std::endl;
+    }
+    system("pause");
+    {
+        int32_t chsum = 0;
+        rng.seed();
+    
+        sorted_flat_deque<int32_t> testB;
+        testB.set_max_size(maxSize);
+    
+        begin = std::chrono::high_resolution_clock::now();
+    
+        for (uint32_t i = 0; i < reps; ++i) {
+            int32_t newValue = rng() % 2000 - 1000;
+            testB.push_back(newValue);
+            chsum += testB.median();
+        }
+    
+        end = std::chrono::high_resolution_clock::now();
+    
+        std::cout << "TestA: time=" << std::chrono::duration_cast<std::chrono::microseconds>(
+            end - begin).count() << " mcs, chsum=" << chsum << std::endl;
+    }
+    system("pause");
 }
