@@ -26,12 +26,18 @@ public:
     }
 
     circular_buffer<T>& operator=(const circular_buffer<T>& other) {
+        if (this == &other) {
+            return *this;
+        }
         m_buffer = other.m_buffer;
         m_frontOffset = other.m_frontOffset;
         m_size = other.m_size;
         return *this;
     }
     circular_buffer<T>& operator=(circular_buffer<T>&& other) {
+        if (this == &other) {
+            return *this;
+        }
         m_buffer = std::move(other.m_buffer);
         m_frontOffset = other.m_frontOffset; other.m_frontOffset = 0;
         m_size = other.m_size; other.m_size = 0;

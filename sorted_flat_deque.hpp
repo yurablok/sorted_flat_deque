@@ -14,6 +14,7 @@
 // History:
 // v0.1 06-Sep-19   First release.
 // v0.2 16-Sep-19   Added set_max_size.
+// v0.3 15-Oct-19   Fixes in sorted_flat_deque::operator=.
 
 #pragma once
 #include <functional>
@@ -72,21 +73,29 @@ public:
     }
 
     sorted_flat_deque<item_t>& operator=(const sorted_flat_deque<item_t>& other) {
+        if (this == &other) {
+            return *this;
+        }
         m_size = other.m_size;
         m_minOffset = other.m_minOffset;
         m_medianOffset = other.m_medianOffset;
         m_medianPos = other.m_medianPos;
         m_maxOffset = other.m_maxOffset;
         m_nodes = other.m_nodes;
+        m_comparator = other.m_comparator;
         return *this;
     }
     sorted_flat_deque<item_t>& operator=(sorted_flat_deque<item_t>&& other) {
+        if (this == &other) {
+            return *this;
+        }
         m_size = other.m_size; other.m_size = 0;
         m_minOffset = other.m_minOffset; other.m_minOffset = position_max;
-        m_medianOffset = other.m_medianOffset; m_medianOffset = position_max;
-        m_medianPos = other.m_medianPos; m_medianPos = position_max;
-        m_maxOffset = other.m_maxOffset; m_maxOffset = position_max;
+        m_medianOffset = other.m_medianOffset; other.m_medianOffset = position_max;
+        m_medianPos = other.m_medianPos; other.m_medianPos = position_max;
+        m_maxOffset = other.m_maxOffset; other.m_maxOffset = position_max;
         m_nodes = std::move(other.m_nodes);
+        m_comparator = other.m_comparator; other.m_comparator = nullptr;
         return *this;
     }
 

@@ -3,13 +3,13 @@ QT -= gui core
 CONFIG += console
 CONFIG -= app_bundle
 
-# run as: $ qmake DEFINES+=BOARD
-contains(DEFINES, BOARD) {
-    message($${PWD}" -> Build target: BOARD");
+# run as: $ qmake DEFINES+=CUSTOM_COMPILER
+contains(DEFINES, CUSTOM_COMPILER) {
+    message("Using custom compiler");
 
-	#QMAKE_CXXFLAGS += -std=c++1y
+    #QMAKE_CXXFLAGS += -std=c++1y
     CONFIG += c++11
-	# ------------------------------------------------------
+    # ------------------------------------------------------
     QMAKE_CC                = /usr/bin/gcc-4.9
     QMAKE_CXX               = /usr/bin/g++-4.9
     QMAKE_LINK              = /usr/bin/g++-4.9
@@ -22,9 +22,7 @@ contains(DEFINES, BOARD) {
     QMAKE_CXXFLAGS          += -w
     QMAKE_CFLAGS            += -w
 } else {
-    message($${PWD}" -> Build target: DESKTOP");
-
-    CONFIG += c++17
+    CONFIG += c++11
 }
 
 # The following define makes your compiler emit warnings if you use
