@@ -116,7 +116,9 @@ public:
         }
     }
     void clear() {
+        const auto maxSize = m_buffer.size();
         m_buffer.clear();
+        m_buffer.resize(maxSize);
         m_frontOffset = 0;
         m_size = 0;
     }
