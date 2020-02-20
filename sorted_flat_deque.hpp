@@ -24,7 +24,11 @@
 template <typename item_t, typename value_t = item_t>
 class sorted_flat_deque {
 public:
+    #ifdef SORTED_FLAT_DEQUE_POSITION_T
+    using position_t = SORTED_FLAT_DEQUE_POSITION_T;
+    #else
     using position_t = uint32_t;
+    #endif
     static const position_t position_max = -1;
     using item_type = item_t;
     using value_type = value_t;
@@ -117,7 +121,7 @@ public:
         m_comparator = comparator;
     }
 
-    void set_max_size(const uint32_t max_size, const bool remove_from_front = true) {
+    void set_max_size(const position_t max_size, const bool remove_from_front = true) {
         if (m_nodes.size() == max_size) {
             return;
         }
@@ -377,7 +381,7 @@ public:
         //bool operator>=(const iterator& other) const;
     private:
         sorted_flat_deque<item_t, value_t>* m_ptr = nullptr;
-        position_t m_nodeIdx = -1;
+        position_t m_nodeIdx = position_max;
     };
     // BidirectionalIterator
     class const_iterator {

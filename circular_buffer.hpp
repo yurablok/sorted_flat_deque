@@ -5,7 +5,11 @@
 template <typename T>
 class circular_buffer {
 public:
+    #ifdef SORTED_FLAT_DEQUE_POSITION_T
+    using position_t = SORTED_FLAT_DEQUE_POSITION_T;
+    #else
     using position_t = uint32_t;
+    #endif
     using value_type = T;
     using pointer = value_type*;
     using const_pointer = const value_type*;
@@ -45,10 +49,10 @@ public:
     }
 
     void set_max_size(const position_t max_size, const bool remove_from_front = true) {
-        if (m_buffer.size() == max_size) {
+        if (static_cast<position_t>(m_buffer.size()) == max_size) {
             return;
         }
-        else if (m_buffer.size() > max_size) { // decrease
+        else if (static_cast<position_t>(m_buffer.size()) > max_size) { // decrease
             if (remove_from_front) {
                 while (m_size > max_size) {
                     pop_front();
@@ -62,7 +66,7 @@ public:
             if (m_frontOffset == 0) {
                 // fxxxb000 -> fxxxb0
             }
-            else if (m_frontOffset + m_size <= m_buffer.size()) {
+            else if (m_frontOffset + m_size <= static_cast<position_t>(m_buffer.size())) {
                 // 000fxxxb -> 0fxxxb
                 const position_t shiftLeft = m_frontOffset - (max_size - m_size);
                 for (position_t i = m_frontOffset; i < m_frontOffset + m_size; ++i) {
@@ -86,7 +90,7 @@ public:
             }
             m_buffer.resize(max_size);
         }
-        else if (m_buffer.size() < max_size) { // increase
+        else if (static_cast<position_t>(m_buffer.size()) < max_size) { // increase
             if (m_buffer.size() <= 1) {
                 // x -> x0
                 m_buffer.resize(max_size);
@@ -95,7 +99,7 @@ public:
                     m_frontOffset = static_cast<position_t>(m_buffer.size()) - 1;
                 }
             }
-            else if (m_frontOffset + m_size + 1 <= m_buffer.size()) {
+            else if (m_frontOffset + m_size + 1 <= static_cast<position_t>(m_buffer.size())) {
                 // fxxb00 -> fxxb0000
                 // 0fxxb0 -> 0fxxb000
                 m_buffer.resize(max_size);
@@ -159,7 +163,7 @@ public:
         }
         const position_t posToPop = m_frontOffset;
         ++m_frontOffset;
-        if (m_frontOffset >= m_buffer.size()) {
+        if (m_frontOffset >= static_cast<position_t>(m_buffer.size())) {
             m_frontOffset = 0;
         }
         --m_size;
@@ -412,7 +416,7 @@ private:
         if (m_buffer.empty()) {
             return;
         }
-        while (m_size >= m_buffer.size()) {
+        while (m_size >= static_cast<position_t>(m_buffer.size())) {
             pop_front();
         }
         ++m_size;
@@ -423,7 +427,7 @@ private:
         if (m_buffer.empty()) {
             return;
         }
-        while (m_size >= m_buffer.size()) {
+        while (m_size >= static_cast<position_t>(m_buffer.size())) {
             pop_back();
         }
         if (m_frontOffset == 0) {
