@@ -15,6 +15,9 @@
 // v0.1 06-Sep-19   First release.
 // v0.2 16-Sep-19   Added set_max_size.
 // v0.3 15-Oct-19   Fixes in sorted_flat_deque::operator=.
+// v0.4 25-Mar-20   circular_buffer::clear() now does not change max_size().
+//                  Added ability to specify position_t via SORTED_FLAT_DEQUE_POSITION_T definition.
+//                  Fixed median offset processing. The comparator is now a three-way.
 
 #pragma once
 #include <functional>
@@ -29,13 +32,13 @@ public:
     #else
     using position_t = uint32_t;
     #endif
-    static const position_t position_max = -1;
+    static const position_t position_max = static_cast<position_t>(-1);
     using item_type = item_t;
     using value_type = value_t;
     using pointer = value_type*;
     using const_pointer = const value_type*;
     //using accessor_t = std::function<const value_t& (const item_t& item)>;
-    using comparator_t = std::function<bool(const item_t& left, const item_t& right)>;
+    using comparator_t = std::function<int8_t(const item_t& left, const item_t& right)>;
 private:
     struct node {
         position_t idx(sorted_flat_deque<item_t, value_t>* parent) {
@@ -111,7 +114,17 @@ public:
             m_comparator = comparator;
         }
         else {
-            m_comparator = [](const value_t& left, const value_t& right) { return left < right; };
+            m_comparator = [](const value_t& left, const value_t& right) -> int8_t {
+                if (left < right) {
+                    return -1;
+                }
+                else if (left > right) {
+                    return 1;
+                }
+                else {
+                    return 0;
+                }
+            };
         }
     }
     template <typename ItemT = item_t, typename ValueT = value_t>
@@ -188,70 +201,124 @@ public:
         if (m_nodes.empty() || m_size == 0) {
             throw std::logic_error("m_nodes.empty()");
         }
+        else if (m_size == 1) {
+            m_size = 0;
+            m_minOffset = position_max;
+            m_maxOffset = position_max;
+            m_medianOffset = position_max;
+            m_medianPos = position_max;
+            return std::move(m_nodes.pop_front().item);
+        }
         auto& to_remove = m_nodes.front();
         //m_sum -= to_remove.value;
         if (to_remove.prevOffset != position_max) {
             m_nodes.at_offset(to_remove.prevOffset).nextOffset = to_remove.nextOffset;
         }
-        else { // left
+        else { // extreme
             m_minOffset = to_remove.nextOffset;
         }
         if (to_remove.nextOffset != position_max) {
             m_nodes.at_offset(to_remove.nextOffset).prevOffset = to_remove.prevOffset;
         }
-        else { // right
+        else { // extreme
             m_maxOffset = to_remove.prevOffset;
         }
-        m_size -= 1;
 
-        if (m_medianOffset == m_nodes.front_offset()) {
-            m_medianOffset = m_nodes.front().prevOffset;
-            if (m_medianPos > 0) {
+        //                5->L        4->R      3->L      2->R      offset
+        // F MR B   123M45(-3L)->12M45(-2)->14M5(-4L)->1M5(-1)->5M  pos
+        if (m_medianOffset == m_nodes.front_offset()) { // MR
+            if (m_size & 1) {
+                m_medianOffset = to_remove.prevOffset;
                 m_medianPos -= 1;
             }
-        }
-        if (m_medianOffset != position_max) {
-            if (m_comparator(to_remove.item, m_nodes.at_offset(m_medianOffset).item) // <=
-                    && m_medianPos) {
-                m_medianPos -= 1;
+            else {
+                m_medianOffset = to_remove.nextOffset;
             }
-            update_median_pos();
         }
+        else {
+            //                5->         4->R      3->       2->R      offset
+            // FR M B   123M45(-2L)->13M45(-1)->34M5(-3L)->4M5(-4)->5M  pos
+            if (m_comparator(to_remove.item,
+                    m_nodes.at_offset(m_medianOffset).item) <= 0) { // FR
+                if (m_size & 1) {
+                    m_medianPos -= 1;
+                }
+                else {
+                    m_medianOffset = m_nodes.at_offset(m_medianOffset).nextOffset;
+                }
+            }
+            //                5->L        4->       3->L      2->       offset
+            // F M BR   123M45(-4L)->12M35(-3)->12M5(-5L)->1M2(-2)->1M  pos
+            else { // BR
+                if (m_size & 1) {
+                    m_medianOffset = m_nodes.at_offset(m_medianOffset).prevOffset;
+                    m_medianPos -= 1;
+                }
+            }
+        }
+        m_size -= 1;
         return std::move(m_nodes.pop_front().item);
     }
     item_t&& pop_back() {
         if (m_nodes.empty() || m_size == 0) {
             throw std::logic_error("m_nodes.empty()");
         }
+        else if (m_size == 1) {
+            m_size = 0;
+            m_minOffset = position_max;
+            m_maxOffset = position_max;
+            m_medianOffset = position_max;
+            m_medianPos = position_max;
+            return std::move(m_nodes.pop_back().item);
+        }
         auto& to_remove = m_nodes.back();
         //m_sum -= to_remove.value;
         if (to_remove.prevOffset != position_max) {
             m_nodes.at_offset(to_remove.prevOffset).nextOffset = to_remove.nextOffset;
         }
-        else { // left
+        else { // extreme
             m_minOffset = to_remove.nextOffset;
         }
         if (to_remove.nextOffset != position_max) {
             m_nodes.at_offset(to_remove.nextOffset).prevOffset = to_remove.prevOffset;
         }
-        else { // right
+        else { // extreme
             m_maxOffset = to_remove.prevOffset;
         }
-        m_size -= 1;
 
-        if (m_medianOffset == m_nodes.back_offset()) {
-            m_medianOffset = m_nodes.back().prevOffset;
-            if (m_medianPos > 0) {
+        //                5->L        4->R      3->L      2->R      offset
+        // F MR B   123M45(-3L)->12M45(-2)->14M5(-4L)->1M5(-1)->5M  pos
+        if (m_medianOffset == m_nodes.back_offset()) { // MR
+            if (m_size & 1) {
+                m_medianOffset = to_remove.prevOffset;
                 m_medianPos -= 1;
             }
-        }
-        if (m_medianOffset != position_max) {
-            if (m_comparator(to_remove.item, m_nodes.at_offset(m_medianOffset).item) // <=
-                && m_medianPos) {
-                m_medianPos -= 1;
+            else {
+                m_medianOffset = to_remove.nextOffset;
             }
-            update_median_pos();
         }
+        else {
+            //                5->         4->R      3->       2->R      offset
+            // FR M B   123M45(-2L)->13M45(-1)->34M5(-3L)->4M5(-4)->5M  pos
+            if (m_comparator(to_remove.item,
+                    m_nodes.at_offset(m_medianOffset).item) <= 0) { // FR
+                if (m_size & 1) {
+                    m_medianPos -= 1;
+                }
+                else {
+                    m_medianOffset = m_nodes.at_offset(m_medianOffset).nextOffset;
+                }
+            }
+            //                5->L        4->       3->L      2->       offset
+            // F M BR   123M45(-4L)->12M35(-3)->12M5(-5L)->1M2(-2)->1M  pos
+            else { // BR
+                if (m_size & 1) {
+                    m_medianOffset = m_nodes.at_offset(m_medianOffset).prevOffset;
+                    m_medianPos -= 1;
+                }
+            }
+        }
+        m_size -= 1;
         return std::move(m_nodes.pop_back().item);
     }
     
@@ -355,10 +422,11 @@ public:
             return temp;
         }
 
-        // We cannot use <,<=,>,>= with a comparator returning bool.
-        // To do this, we need to use a comparator that returns int.
-        // But if we use a comparator that returns int, then the default
-        // comparator will not work for unsigned int elements.
+        position_t offset() const {
+            return m_nodeIdx;
+        }
+
+        //TODO:
         // it  < it  -> ?
         // it  < end -> true
         // end < it  -> false
@@ -442,6 +510,9 @@ public:
             return temp;
         }
 
+        position_t offset() const {
+            return m_nodeIdx;
+        }
     private:
         const sorted_flat_deque<item_t, value_t>* m_ptr = nullptr;
         position_t m_nodeIdx = position_max;
@@ -513,11 +584,11 @@ private:
 
         // O OM
         // O N OM
-        if (m_comparator(item, m_nodes.at_offset(m_medianOffset).item)) { // <=
+        if (m_comparator(item, m_nodes.at_offset(m_medianOffset).item) < 0) { // <
             node* carriage = &m_nodes.at_offset(m_medianOffset);
             m_medianPos += 1;
             while (true) {
-                if (!m_comparator(item, carriage->item)) { // >=
+                if (m_comparator(item, carriage->item) >= 0) { // >=
                     back.nextOffset = carriage->nextOffset;
                     back.prevOffset = carriage->idx(this);
                     //back.value = m_accessor(value);
@@ -548,7 +619,7 @@ private:
         else {
             node* carriage = &m_nodes.at_offset(m_medianOffset);
             while (true) {
-                if (m_comparator(item, carriage->item)) { // <=
+                if (m_comparator(item, carriage->item) < 0) { // <
                     back.nextOffset = carriage->idx(this);
                     back.prevOffset = carriage->prevOffset;
                     //back.value = m_accessor(value);
@@ -603,11 +674,11 @@ private:
 
         // O OM
         // O N OM
-        if (m_comparator(item, m_nodes.at_offset(m_medianOffset).item)) { // <=
+        if (m_comparator(item, m_nodes.at_offset(m_medianOffset).item) < 0) { // <
             node* carriage = &m_nodes.at_offset(m_medianOffset);
             m_medianPos += 1;
             while (true) {
-                if (!m_comparator(item, carriage->item)) { // >=
+                if (m_comparator(item, carriage->item) >= 0) { // >=
                     front.nextOffset = carriage->nextOffset;
                     front.prevOffset = carriage->idx(this);
                     //back.value = m_accessor(value);
@@ -638,7 +709,7 @@ private:
         else {
             node* carriage = &m_nodes.at_offset(m_medianOffset);
             while (true) {
-                if (m_comparator(item, carriage->item)) { // <=
+                if (m_comparator(item, carriage->item) < 0) { // <
                     front.nextOffset = carriage->idx(this);
                     front.prevOffset = carriage->prevOffset;
                     //back.value = m_accessor(value);

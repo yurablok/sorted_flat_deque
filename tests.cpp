@@ -290,6 +290,18 @@ value_t test_sum(const std::initializer_list<value_t> sequence) {
     return sum;
 }
 
+template <typename deque_t>
+void print(const deque_t& deque) {
+    for (auto it = deque.cbegin(); it != deque.cend(); ++it) {
+        std::cout << "[" << it.offset() << "]" << *it;
+        if (it == deque.cmedian_it()) {
+            std::cout << "M";
+        }
+        std::cout << " ";
+    }
+    std::cout << std::endl;
+}
+
 void test_sorted_flat_deque() {
     { // basic
         sorted_flat_deque<int32_t> sorted;
@@ -444,6 +456,31 @@ void test_sorted_flat_deque() {
         }
         std::cout << std::endl;
     } // set_max_size
+
+    {
+        sorted_flat_deque<int32_t> sorted;
+        sorted.set_max_size(2);
+        sorted.push_back(612); // 612
+        assert(sorted.median() == 612);
+        sorted.push_back(302); // 302 612
+        assert(sorted.median() == 302);
+        sorted.push_back(-266);// -266  302
+        assert(sorted.median() == -266);
+        sorted.push_back(-415);// -415 -266
+        assert(sorted.median() == -415);
+        sorted.push_back(-796);// -796 -415
+        assert(sorted.median() == -796);
+        sorted.push_back(391); // -796 391
+        assert(sorted.median() == -796);
+        sorted.push_back(429); // 391 429
+        assert(sorted.median() == 391);
+        sorted.push_back(985); // 429 985
+        assert(sorted.median() == 429);
+        sorted.push_back(-702);// -702 985
+        assert(sorted.median() == -702);
+        sorted.push_back(403); // -702 403
+        assert(sorted.median() == -702);
+    }
 }
 
 int main() {
@@ -452,57 +489,63 @@ int main() {
     std::cout << "success" << std::endl;
 
     std::mt19937 rng;
-    std::chrono::high_resolution_clock::time_point begin, end;
-    //constexpr uint32_t maxSize = 313;
     constexpr uint32_t maxSize = 1000;
-    //constexpr uint32_t reps = 1350;
-    constexpr uint32_t reps = 10000;
-    system("pause");
-    {
-        int32_t chsum = 0;
-        rng.seed();
-    
-        std::array<int32_t, maxSize> temp;
-        circular_buffer<int32_t> testA;
-        testA.set_max_size(maxSize);
-    
-        begin = std::chrono::high_resolution_clock::now();
-    
-        for (uint32_t i = 0; i < reps; ++i) {
-            int32_t newValue = rng() % 2000 - 1000;
-            testA.push_back(newValue);
-            for (uint32_t n = 0; n < testA.size(); ++n) {
-                temp[n] = testA[n];
+    constexpr uint32_t reps = 20000;
+    std::chrono::high_resolution_clock::time_point begin, end;
+    std::array<int32_t, reps> chsums;
+    for (uint32_t seed = 0; seed < 100; ++seed) {
+        int32_t chsumA = 0;
+        {
+            rng.seed(seed);
+
+            std::array<int32_t, maxSize> temp = { 0 };
+            circular_buffer<int32_t> testA;
+            testA.set_max_size(maxSize);
+
+            begin = std::chrono::high_resolution_clock::now();
+
+            for (uint32_t i = 0; i < reps; ++i) {
+                int32_t newValue = rng() % 200 - 100;
+                testA.push_back(newValue);
+                for (uint32_t n = 0; n < testA.size(); ++n) {
+                    temp[n] = testA[n];
+                }
+                std::sort(temp.begin(), temp.begin() + testA.size());
+                chsumA += temp[(testA.size() - 1) >> 1];
+                chsums[i] = chsumA;
             }
-            std::sort(temp.begin(), temp.begin() + testA.size());
-            chsum += temp[(testA.size() - 1) >> 1];
+
+            end = std::chrono::high_resolution_clock::now();
+
+            std::cout << "TestA: seed=" << seed << " time="
+                << std::chrono::duration_cast<std::chrono::microseconds>(
+                    end - begin).count() << " mcs, chsum=" << chsumA << std::endl;
         }
-    
-        end = std::chrono::high_resolution_clock::now();
-    
-        std::cout << "TestA: time=" << std::chrono::duration_cast<std::chrono::microseconds>(
-            end - begin).count() << " mcs, chsum=" << chsum << std::endl;
-    }
-    system("pause");
-    {
-        int32_t chsum = 0;
-        rng.seed();
-    
-        sorted_flat_deque<int32_t> testB;
-        testB.set_max_size(maxSize);
-    
-        begin = std::chrono::high_resolution_clock::now();
-    
-        for (uint32_t i = 0; i < reps; ++i) {
-            int32_t newValue = rng() % 2000 - 1000;
-            testB.push_back(newValue);
-            chsum += testB.median();
+        int32_t chsumB = 0;
+        {
+            rng.seed(seed);
+
+            sorted_flat_deque<int32_t> testB;
+            testB.set_max_size(maxSize);
+
+            begin = std::chrono::high_resolution_clock::now();
+
+            for (uint32_t i = 0; i < reps; ++i) {
+                int32_t newValue = rng() % 200 - 100;
+                testB.push_back(newValue);
+                chsumB += testB.median();
+            }
+
+            end = std::chrono::high_resolution_clock::now();
+
+            std::cout << "TestB: seed=" << seed << " time="
+                << std::chrono::duration_cast<std::chrono::microseconds>(
+                    end - begin).count() << " mcs, chsum=" << chsumB << std::endl;
         }
-    
-        end = std::chrono::high_resolution_clock::now();
-    
-        std::cout << "TestA: time=" << std::chrono::duration_cast<std::chrono::microseconds>(
-            end - begin).count() << " mcs, chsum=" << chsum << std::endl;
+        //if (chsumA != chsumB) {
+        //    [] {};
+        //}
+        assert(chsumA == chsumB);
     }
     system("pause");
 }
