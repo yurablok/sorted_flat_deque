@@ -489,11 +489,14 @@ int main() {
     std::cout << "success" << std::endl;
 
     std::mt19937 rng;
-    constexpr uint32_t maxSize = 1000;
-    constexpr uint32_t reps = 20000;
+    constexpr uint32_t maxSize = 2048;
+    constexpr uint32_t maxSeeds = 50;
+    constexpr uint32_t reps = 10000;
     std::chrono::high_resolution_clock::time_point begin, end;
     std::array<int32_t, reps> chsums;
-    for (uint32_t seed = 0; seed < 100; ++seed) {
+    int64_t minDurationA_mcs = INT64_MAX;
+    int64_t minDurationB_mcs = INT64_MAX;
+    for (uint32_t seed = 0; seed < maxSeeds; ++seed) {
         int32_t chsumA = 0;
         {
             rng.seed(seed);
@@ -517,9 +520,11 @@ int main() {
 
             end = std::chrono::high_resolution_clock::now();
 
+            const int64_t durationA_mcs = std::chrono::duration_cast<
+                std::chrono::microseconds>(end - begin).count();
+            minDurationA_mcs = std::min(minDurationA_mcs, durationA_mcs);
             std::cout << "TestA: seed=" << seed << " time="
-                << std::chrono::duration_cast<std::chrono::microseconds>(
-                    end - begin).count() << " mcs, chsum=" << chsumA << std::endl;
+                << durationA_mcs << " mcs, chsum=" << chsumA << std::endl;
         }
         int32_t chsumB = 0;
         {
@@ -538,14 +543,18 @@ int main() {
 
             end = std::chrono::high_resolution_clock::now();
 
+            const int64_t durationB_mcs = std::chrono::duration_cast<
+                std::chrono::microseconds>(end - begin).count();
+            minDurationB_mcs = std::min(minDurationB_mcs, durationB_mcs);
             std::cout << "TestB: seed=" << seed << " time="
-                << std::chrono::duration_cast<std::chrono::microseconds>(
-                    end - begin).count() << " mcs, chsum=" << chsumB << std::endl;
+                << durationB_mcs << " mcs, chsum=" << chsumB << std::endl;
         }
         //if (chsumA != chsumB) {
         //    [] {};
         //}
         assert(chsumA == chsumB);
     }
+    std::cout << "minDurationA=" << minDurationA_mcs
+        << " minDurationB=" << minDurationB_mcs << std::endl;
     system("pause");
 }

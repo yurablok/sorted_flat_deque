@@ -8,6 +8,16 @@ min - O(1)
 median - O(1)  
 max - O(1)  
 
+### Applicability:
+
+The container is well suited in cases where you need to constantly receive
+min, max, median elements with the constantly insertion of new data (points).
+
+### Benchmark result:
+
+MSVC142x64, Kaby Lake, 3.88 GHz  
+![benchmark result](https://github.com/yurablok/sorted_flat_deque/blob/master/benchmark.png)
+
 ### Principle of usage:
 1. Container initialization
 ```cpp
