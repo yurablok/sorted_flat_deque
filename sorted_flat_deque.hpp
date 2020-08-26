@@ -12,12 +12,13 @@
 // License: MIT
 // https://github.com/yurablok/sorted_flat_deque
 // History:
-// v0.1 06-Sep-19   First release.
-// v0.2 16-Sep-19   Added set_max_size.
-// v0.3 15-Oct-19   Fixes in sorted_flat_deque::operator=.
+//                  Added sorted_flat_deque::front() and back().
 // v0.4 25-Mar-20   circular_buffer::clear() now does not change max_size().
 //                  Added ability to specify position_t via SORTED_FLAT_DEQUE_POSITION_T definition.
 //                  Fixed median offset processing. The comparator is now a three-way.
+// v0.3 15-Oct-19   Fixes in sorted_flat_deque::operator=.
+// v0.2 16-Sep-19   Added set_max_size.
+// v0.1 06-Sep-19   First release.
 
 #pragma once
 #include <functional>
@@ -195,6 +196,20 @@ public:
     }
     void push_front(const item_t& item) {
         push_front_impl(item);
+    }
+
+    item_t& back() {
+        return m_nodes.back().item;
+    }
+    const item_t& back() const {
+        return m_nodes.back().item;
+    }
+
+    item_t& front() {
+        return m_nodes.front().item;
+    }
+    const item_t& front() const {
+        return m_nodes.front().item;
     }
 
     item_t&& pop_front() {
