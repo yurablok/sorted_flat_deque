@@ -481,6 +481,30 @@ void test_sorted_flat_deque() {
         sorted.push_back(403); // -702 403
         assert(sorted.median() == -702);
     }
+    {
+        sorted_flat_deque<int32_t> s;
+        s.set_max_size(10);
+        s.push_back(79);
+        s.push_front(848);
+        s.push_front(780);
+        s.push_front(848);
+        s.push_back(51);
+        s.push_front(17);
+        s.push_front(780);
+        s.push_front(5);
+        s.push_front(929);
+        s.push_back(912);
+        s.pop_front();
+        s.pop_front();
+        s.pop_front();
+        s.pop_front();
+        s.pop_front();
+        s.pop_front();
+        s.pop_front();
+        s.pop_front();
+        s.pop_front();
+        s.pop_front();
+    }
 }
 
 int main() {

@@ -9,9 +9,10 @@
 // average - O(1)
 //
 // Author: Yurii Blok
-// License: MIT
+// License: BSL-1.0
 // https://github.com/yurablok/sorted_flat_deque
 // History:
+// v0.5 26-Aug-20   Fixed median offset processing in sorted_flat_deque::pop_front() and pop_back().
 //                  Added sorted_flat_deque::front() and back().
 // v0.4 25-Mar-20   circular_buffer::clear() now does not change max_size().
 //                  Added ability to specify position_t via SORTED_FLAT_DEQUE_POSITION_T definition.
@@ -251,10 +252,30 @@ public:
             }
         }
         else {
+            int8_t cmp = m_comparator(to_remove.item,
+                m_nodes.at_offset(m_medianOffset).item);
+            const node* caret_left = &to_remove;
+            const node* caret_right = &to_remove;
+            while (cmp == 0) {
+                // M <-CL R CR-> M
+                if (m_medianOffset == caret_left->prevOffset) { // BR
+                    cmp = 1;
+                    break;
+                }
+                if (caret_right->nextOffset == m_medianOffset) { // FR
+                    cmp = -1;
+                    break;
+                }
+                if (caret_left->prevOffset != position_max) {
+                    caret_left = &m_nodes.at_offset(caret_left->prevOffset);
+                }
+                if (caret_right->nextOffset != position_max) {
+                    caret_right = &m_nodes.at_offset(caret_right->nextOffset);
+                }
+            }
             //                5->         4->R      3->       2->R      offset
             // FR M B   123M45(-2L)->13M45(-1)->34M5(-3L)->4M5(-4)->5M  pos
-            if (m_comparator(to_remove.item,
-                    m_nodes.at_offset(m_medianOffset).item) <= 0) { // FR
+            if (cmp < 0) {
                 if (m_size & 1) {
                     m_medianPos -= 1;
                 }
@@ -264,7 +285,7 @@ public:
             }
             //                5->L        4->       3->L      2->       offset
             // F M BR   123M45(-4L)->12M35(-3)->12M5(-5L)->1M2(-2)->1M  pos
-            else { // BR
+            else {
                 if (m_size & 1) {
                     m_medianOffset = m_nodes.at_offset(m_medianOffset).prevOffset;
                     m_medianPos -= 1;
@@ -313,10 +334,30 @@ public:
             }
         }
         else {
+            int8_t cmp = m_comparator(to_remove.item,
+                m_nodes.at_offset(m_medianOffset).item);
+            const node* caret_left = &to_remove;
+            const node* caret_right = &to_remove;
+            while (cmp == 0) {
+                // M <-CL R CR-> M
+                if (m_medianOffset == caret_left->prevOffset) { // BR
+                    cmp = 1;
+                    break;
+                }
+                if (caret_right->nextOffset == m_medianOffset) { // FR
+                    cmp = -1;
+                    break;
+                }
+                if (caret_left->prevOffset != position_max) {
+                    caret_left = &m_nodes.at_offset(caret_left->prevOffset);
+                }
+                if (caret_right->nextOffset != position_max) {
+                    caret_right = &m_nodes.at_offset(caret_right->nextOffset);
+                }
+            }
             //                5->         4->R      3->       2->R      offset
             // FR M B   123M45(-2L)->13M45(-1)->34M5(-3L)->4M5(-4)->5M  pos
-            if (m_comparator(to_remove.item,
-                    m_nodes.at_offset(m_medianOffset).item) <= 0) { // FR
+            if (cmp < 0) {
                 if (m_size & 1) {
                     m_medianPos -= 1;
                 }
@@ -326,7 +367,7 @@ public:
             }
             //                5->L        4->       3->L      2->       offset
             // F M BR   123M45(-4L)->12M35(-3)->12M5(-5L)->1M2(-2)->1M  pos
-            else { // BR
+            else {
                 if (m_size & 1) {
                     m_medianOffset = m_nodes.at_offset(m_medianOffset).prevOffset;
                     m_medianPos -= 1;
